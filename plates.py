@@ -7,6 +7,8 @@ import os
 import traceback
 import warnings
 
+from unidecode import unidecode
+
 import astropy
 from astropy.units import deg, hour
 from astropy.coordinates import Angle, SkyCoord, EarthLocation
@@ -32,8 +34,18 @@ FITSDIR = 'C:/Data/plates/fits'      # Base directory to write FITS files out to
 HDRDIR = 'C:/Data/plates/headers'
 LOGDIR = 'C:/Data/plates/logs'
 
-MONTHS = {'jan':1, 'feb':2, 'mar':3, 'apr':4, 'may':5, 'jun':6,
-          'jul':7, 'aug':8, 'sep':9, 'oct':10, 'nov':11, 'dec':12}
+MONTHS = {'jan':1, 'january':1,
+          'feb':2, 'february':2, 'fen':2,
+          'mar':3, 'march':3,
+          'apr':4, 'april':4,
+          'may':5,
+          'jun':6, 'june':6,
+          'jul':7, 'july':7, 'ul':7,
+          'aug':8, 'august':8,
+          'sep':9, 'sept':9, 'september':9, 'seo':9,
+          'oct':10, 'october':10,
+          'nov':11, 'november':11,
+          'dec':12, 'december':12}
 
 XTL = np.arange(0, 24)
 XT = (XTL - 12) * np.pi / 12
@@ -46,6 +58,10 @@ or both.
 
 # Suppress the warnings from astropy about lack of precision for dates earlier than 1950's
 warnings.filterwarnings("ignore")
+
+
+class DateError(ValueError):
+    pass
 
 
 def get_infilename(platenum=''):
@@ -105,6 +121,8 @@ def get_outfilename(tiffname='', platenum=''):
     :param platenum: plate number
     :return: output file path/name
     """
+    if not tiffname:
+        return os.path.join(FITSDIR, 'ungrouped', 'plate%s.fits' % platenum)
     dirlist = os.path.split(os.path.dirname(tiffname))
     if len(dirlist) > 1:
         subdir = dirlist[-1]    # the directory that the tiff file is in
@@ -125,6 +143,8 @@ def get_headerfilename(tiffname='', platenum=''):
     :param platenum: plate number
     :return: output file path/name
     """
+    if not tiffname:
+        return os.path.join(HDRDIR, 'ungrouped', 'plate%s.txt' % platenum)
     dirlist = os.path.split(os.path.dirname(tiffname))
     if len(dirlist) > 1:
         subdir = dirlist[-1]    # the directory that the tiff file is in
@@ -323,6 +343,59 @@ def parseval(valstring='', ra=True):
             return sgn * rv
 
 
+def parsedate(datestring):
+    """Date nominally looks like '1902,jul,22'
+    """
+    datestring = datestring.replace('.', ',')   # Replace any dots with commas, because some rows use them instead
+    datestring = datestring.replace(':', ',')   # Replace any colons with commas as well
+    bits = datestring.split(',')
+    bits = [x for x in bits if x]    # Drop any empty components - eg 1902,,jun,22
+    if len(bits) > 3:
+        return None    # Can't fix this, too many components.
+
+    if len(bits) == 3:    # Catch '1902,jun,22', '1902, jun, 22', etc - dots or commas with or without spaces before/after them
+        return bits[0].strip(), bits[1].strip().lower(), bits[2].strip()
+
+    datestring = datestring.replace(',', ' ')   # Any commas are now replaced with spaces as a separator
+    bits = datestring.split(' ')
+    bits = [x for x in bits if x]    # Drop any empty components - eg 1902,,jun 22
+    if len(bits) > 3:
+        return None    # Can't fix this, too many components.
+
+    if len(bits) == 3:  # Catch '1902 jun 22', '1902 jun,22', etc - spaces, or dots or commas with or without spaces before/after them
+        return bits[0].strip(), bits[1].strip().lower(), bits[2].strip()
+
+    if len(bits) == 2:
+        b0, b1 = bits[0].strip(), bits[1].strip()
+        if (len(b0) >= 5) and (b0[:-3].isdigit()) and (b0[-3:].lower() in MONTHS):   # Catch 1902jun,22
+            return b0[:-3], b0[-3:].lower().strip(), b1.strip()
+        if (len(b1) >= 4) and (b1[:3].lower() in MONTHS) and (b1[3:].isdigit()):     # Catch 1902,jun22
+            return b0.strip(), b1[:3].lower().strip(), b1[3:].strip()
+
+    if len(bits) == 1:   # Try to handle cases with no spaces or commas, eg '1902jun22'
+        ybit = ''
+        mbit = ''
+        dbit = ''
+        bad = False
+        for x in datestring.strip():
+            if x == ' ':
+                continue
+            elif x.isdigit():
+                if mbit:
+                    dbit += x    # First group of digits before any letters
+                else:
+                    ybit += x    # Second group of digits, after the month section
+            else:
+                if ybit and (not dbit):
+                    mbit += x    # First group of letters, after exactly one group of digits
+                else:
+                    bad = True    # non-digits before any digits, or after the second group of digits
+        if not bad:
+            return ybit, mbit.lower().strip(), dbit
+
+    return None    # Catch anything else
+
+
 def dostats(ra=None, dec=None, envdate='', analysis=''):
     global covmap, covcount
     if (ra is None) or (dec is None):
@@ -401,6 +474,16 @@ def do_plate(row=None, dofits=False, analysis=''):
      *extras,    # Catch all for an extra columns
      ) = tuple(row)
 
+    # Convert any strings that might have unicode characters into ASCII, making an attempt
+    # to choose ASCII characters that are as close to the unicode ones as possible (stripping
+    # accents, etc). FITS file headers must be in normal printable ASCII characters.
+    envobject = ''.join([x for x in unidecode(envobject) if ' ' <= x <= '~'])
+    envobjtype = ''.join([x for x in unidecode(envobjtype) if ' ' <= x <= '~'])
+    envdevelop = ''.join([x for x in unidecode(envdevelop) if ' ' <= x <= '~'])
+    envgrating = ''.join([x for x in unidecode(envgrating) if ' ' <= x <= '~'])
+    envremarks = ''.join([x for x in unidecode(envremarks) if ' ' <= x <= '~'])
+    othermarkings = ''.join([x for x in unidecode(othermarkings) if ' ' <= x <= '~'])
+    scannercomments = ''.join([x for x in unidecode(scannercomments) if ' ' <= x <= '~'])
     ra = None
     if envra:
         if (len(envra.strip()) > 1) or (envra.strip() == '0'):
@@ -419,6 +502,44 @@ def do_plate(row=None, dofits=False, analysis=''):
             else:
                 dec = Angle(rv, unit=deg)
 
+    radiff = None
+    try:
+        calc_ra = float(calc_ra)
+        if 0 <= calc_ra <= 360.0:
+            if (ra is not None):
+                radiff = (ra.hour * 15) - calc_ra
+                if radiff > 1.0:
+                    print("Seq# %s Warning: RA=%s renders to %1.1f hours, not calc_ra of %1.1f hours" % (seqnum, envra, ra.hour, calc_ra / 15.0))
+            else:
+                ra = Angle(calc_ra / 15.0, unit=hour)
+                print('    Overriding wierd RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
+        else:
+            if ra is None:
+                print('    ', end='')
+            print('Seq# %s error: calc_ra of %1.4f degrees is outside 0 to 360 degree range' % (seqnum, calc_ra))
+    except ValueError:
+        if (ra is None) and envra.strip():
+            print('    Could not find valid RA for %s' % envra)
+
+    decdiff = None
+    try:
+        calc_dec = float(calc_dec)
+        if -90.0 <= calc_dec <= 58.0:
+            if (dec is not None):
+                decdiff = dec.deg - calc_dec
+                if decdiff > 1.0:
+                    print("Seq# %s Warning: DEC=%s renders to %1.1f, not calc_dec of %1.1f" % (seqnum, envdec, dec.deg, calc_dec))
+            else:
+                dec = Angle(calc_dec, unit=deg)
+                print('    Overriding wierd DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
+        else:
+            if dec is None:
+                print('    ', end='')
+            print('Seq# %s error: calc_dec of %1.4f is outside -90 to +58 range' % (seqnum, calc_dec))
+    except:
+        if (dec is None) and envdec.strip():
+            print('    Could not find valid DEC for %s' % envdec)
+
     dostats(ra=ra, dec=dec, envdate=envdate, analysis=analysis)
 
     if not dofits:
@@ -426,30 +547,28 @@ def do_plate(row=None, dofits=False, analysis=''):
         return (seqnum, (ra is not None) and (dec is not None), False, False)
 
     tiff_filename = get_infilename(platenum=platenum)
+    primary_hdu = fits.PrimaryHDU()
+    got_tiff = False
     if (tiff_filename is None) or (not os.path.exists(tiff_filename)):
         # print('Seq# %s File %s not found' % (seqnum, tiff_filename))
-        # Return tuple is (sequence number, gotRADec, readTIFF, wroteFITS)
-        return (seqnum, (ra is not None) and (dec is not None), False, False)
-        # Skip lines referring to TIFF files that don't exist
+        pass
     else:
         print('Seq# %s File %s found' % (seqnum, tiff_filename))
-
-    if isdone(tiffname=tiff_filename, platenum=platenum):
-        print('Seq# %s File %s already processed' % (seqnum,
-                                                     get_outfilename(tiffname=tiff_filename, platenum=platenum)))
-        # Return tuple is (sequence number, gotRADec, readTIFF, wroteFITS)
-        return (seqnum, (ra is not None) and (dec is not None), True, False)
-        # Skip lines referring to FITS files that already exist
-
-    tiff_img = Image.open(tiff_filename, 'r')
-    primary_hdu = fits.PrimaryHDU(np.frombuffer(tiff_img.tobytes(), dtype=np.uint16))
-    primary_hdu.data.shape = tiff_img.size
+        if isdone(tiffname=tiff_filename, platenum=platenum):
+            print('Seq# %s File %s already processed' % (seqnum,
+                                                         get_outfilename(tiffname=tiff_filename, platenum=platenum)))
+        else:
+            tiff_img = Image.open(tiff_filename, 'r')
+            primary_hdu = fits.PrimaryHDU(np.frombuffer(tiff_img.tobytes(), dtype=np.uint16))
+            primary_hdu.data.shape = tiff_img.size
+            got_tiff = True
 
     cover_filename = get_coverfilename(platenum=platenum)
+    cover_hdu = None
     if (cover_filename is None) or (not os.path.exists(cover_filename)):
-        print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
-        cover_hdu = None
-    else:
+        # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
+        pass
+    elif got_tiff:
         cover_img = Image.open(cover_filename, 'r')
         cover_hdu = fits.ImageHDU(np.frombuffer(cover_img.tobytes(), dtype=np.uint8))
         cover_hdu.data.shape = cover_img.size
@@ -511,8 +630,25 @@ def do_plate(row=None, dofits=False, analysis=''):
     books1T, books2T, books3T, books4T = None, None, None, None
     booke1T, booke2T, booke3T, booke4T = None, None, None, None
 
+    head.set('ENV_DATE', envdate, 'Date written on envelope')
     try:
-        yearstring, monthname, daystring = tuple(envdate.split(','))
+        if '&' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('&')])
+        elif '-' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('-')])
+        elif '/' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('/')])
+        else:
+            result = parsedate(envdate)
+
+        if result is not None:
+            yearstring, monthname, daystring = result
+        else:
+            raise DateError
+
         year, month, day = int(yearstring), MONTHS[monthname.lower().strip()], int(daystring)
         tmpstring = bookexpbasis.strip().upper()
         if tmpstring in ['LST', 'ST'] or ('LST' in othermarkings):
@@ -599,10 +735,12 @@ def do_plate(row=None, dofits=False, analysis=''):
                     exptime += int(booke4T.gps - books4T.gps + 0.5)
 
                 head.set('EXPTIME', exptime, 'Total exposure time in seconds')
-
+    except DateError:
+        print('Seq# %s missing or invalid date: %s' % (seqnum, envdate))
+        head.set('DATE-OBS', envdate, 'Date of observation')
     except:
         head.set('DATE-OBS', envdate, 'Date of observation')
-        print("Seq# %s has unreadable Date column: %s" % (seqnum, traceback.format_exc()))
+        print("Seq# %s error in parsing date/times: %s" % (seqnum, traceback.format_exc()))
 
     if books1 or booke1:
         head.set('LSTART1', books1, 'LST at start of exposure')
@@ -673,7 +811,9 @@ def do_plate(row=None, dofits=False, analysis=''):
         hdulist = fits.HDUList([primary_hdu, cover_hdu])
     else:
         hdulist = fits.HDUList([primary_hdu])
-    hdulist.writeto(get_outfilename(tiffname=tiff_filename, platenum=platenum), overwrite=True)
+
+    if got_tiff:
+        hdulist.writeto(get_outfilename(tiffname=tiff_filename, platenum=platenum), overwrite=True)
     hdulist[0].header.tofile(get_headerfilename(tiffname=tiff_filename, platenum=platenum),
                              sep='\r\n',
                              padding=False,
@@ -764,6 +904,7 @@ if __name__ == '__main__':
     covmap = np.zeros(shape=(3600, 1800), dtype=np.int32)
     covcount = np.zeros(shape=(3600, 1800), dtype=np.int32)
 
+    print(options.fnames)
     fnames = []
     for fname in options.fnames:
         fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
