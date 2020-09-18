@@ -743,20 +743,20 @@ def do_plate(row=None, dofits=False, analysis=''):
         print("Seq# %s error in parsing date/times: %s" % (seqnum, traceback.format_exc()))
 
     if books1 or booke1:
-        head.set('LSTART1', books1, 'LST at start of exposure')
-        head.set('LEND1', booke1, 'LST at end of exposure')
+        head.set('LSTART1', books1T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of exposure')
+        head.set('LEND1', booke1T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of exposure')
 
     if books2 or booke2:
-        head.set('LSTART2', books2, 'LST at start of second exposure')
-        head.set('LEND2', booke2, 'LST at end of second exposure')
+        head.set('LSTART2', books2T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of second exposure')
+        head.set('LEND2', booke2T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of second exposure')
 
     if books3 or booke3:
-        head.set('LSTART3', books3, 'LST at start of third exposure')
-        head.set('LEND3', booke3, 'LST at end of third exposure')
+        head.set('LSTART3', books3T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of third exposure')
+        head.set('LEND3', booke3T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of third exposure')
 
     if books4 or booke4:
-        head.set('LSTART4', books4, 'LST at start of fourth exposure')
-        head.set('LEND4', booke4, 'LST at end of fourth exposure')
+        head.set('LSTART4', books4T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of fourth exposure')
+        head.set('LEND4', booke4T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of fourth exposure')
 
     stime = books1T
     midtime = stime   # Fall back to start time, if we don't have an endtime
