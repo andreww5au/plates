@@ -512,7 +512,7 @@ def do_plate(row=None, dofits=False, analysis=''):
                     print("Seq# %s Warning: RA=%s renders to %1.1f hours, not calc_ra of %1.1f hours" % (seqnum, envra, ra.hour, calc_ra / 15.0))
             else:
                 ra = Angle(calc_ra / 15.0, unit=hour)
-                print('    Overriding wierd RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
+                print('    Overriding weird RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
         else:
             if ra is None:
                 print('    ', end='')
@@ -531,7 +531,7 @@ def do_plate(row=None, dofits=False, analysis=''):
                     print("Seq# %s Warning: DEC=%s renders to %1.1f, not calc_dec of %1.1f" % (seqnum, envdec, dec.deg, calc_dec))
             else:
                 dec = Angle(calc_dec, unit=deg)
-                print('    Overriding wierd DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
+                print('    Overriding weird DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
         else:
             if dec is None:
                 print('    ', end='')
@@ -742,19 +742,19 @@ def do_plate(row=None, dofits=False, analysis=''):
         head.set('DATE-OBS', envdate, 'Date of observation')
         print("Seq# %s error in parsing date/times: %s" % (seqnum, traceback.format_exc()))
 
-    if books1 or booke1:
+    if books1T and booke1T:
         head.set('LSTART1', books1T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of exposure')
         head.set('LEND1', booke1T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of exposure')
 
-    if books2 or booke2:
+    if books2T and booke2T:
         head.set('LSTART2', books2T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of second exposure')
         head.set('LEND2', booke2T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of second exposure')
 
-    if books3 or booke3:
+    if books3T and booke3T:
         head.set('LSTART3', books3T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of third exposure')
         head.set('LEND3', booke3T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of third exposure')
 
-    if books4 or booke4:
+    if books4T and booke4T:
         head.set('LSTART4', books4T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of fourth exposure')
         head.set('LEND4', booke4T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at end of fourth exposure')
 
