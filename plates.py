@@ -1,8 +1,10 @@
 
 import argparse
+import copy
 import csv
 import datetime
 import glob
+import io
 import os
 import traceback
 import warnings
@@ -23,6 +25,8 @@ import matplotlib.ticker as mticker
 
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = 933120000
+
+import moviepy.video.io.ImageSequenceClip
 
 PR = 1.0   # Plate 'radius' - eg, 1.0 means a 2 x 2 degree square plate.
 
@@ -49,6 +53,8 @@ MONTHS = {'jan':1, 'january':1,
 
 XTL = np.arange(0, 24)
 XT = (XTL - 12) * np.pi / 12
+
+LASTYEAR = 1896
 
 USAGE = """
 Takes a spreadsheet containing plate data, and either converts scanned TIFF
@@ -396,10 +402,12 @@ def parsedate(datestring):
     return None    # Catch anything else
 
 
-def dostats(ra=None, dec=None, envdate='', analysis=''):
-    global covmap, covcount
+def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', analysis=''):
+    global covmap, covcount, LASTYEAR
+
     if (ra is None) or (dec is None):
         return
+
     radeg = ra.deg
     decdeg = dec.deg
     ras = np.arange(int((radeg - PR) * 10), int((radeg + PR) * 10), dtype=np.int32)
@@ -413,6 +421,17 @@ def dostats(ra=None, dec=None, envdate='', analysis=''):
     area = np.meshgrid(ras, decs)
     covmap[tuple(area)] = 255
     covcount[tuple(area)] += 1
+
+    if year is not None:
+        if year < LASTYEAR:
+            print("*** OH NO! Time is going backwards from %d to %d" % (LASTYEAR, year))
+        elif year > LASTYEAR:
+            for y in range(LASTYEAR, year):
+                plotmap(title='Astrographic plates, up to %04d' % y,
+                        countmap=covcount,
+                        format='png',
+                        filename='D:/data/plates/maps/progress-%02d.png' % y)
+            LASTYEAR = year
 
 
 def do_plate(row=None, dofits=False, analysis=''):
@@ -540,7 +559,29 @@ def do_plate(row=None, dofits=False, analysis=''):
         if (dec is None) and envdec.strip():
             print('    Could not find valid DEC for %s' % envdec)
 
-    dostats(ra=ra, dec=dec, envdate=envdate, analysis=analysis)
+    try:
+        if '&' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('&')])
+        elif '-' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('-')])
+        elif '/' in envdate:
+            # print('Plate taken over multiple days - using first day: %s' % envdate)
+            result = parsedate(envdate[:envdate.find('/')])
+        else:
+            result = parsedate(envdate)
+
+        if result is not None:
+            yearstring, monthname, daystring = result
+        else:
+            raise DateError
+
+        year, month, day = int(yearstring), MONTHS[monthname.lower().strip()], int(daystring)
+    except:
+        year, month, day = None, None, None   # Catch date errors again later if we're generating FITS files
+
+    dostats(year=year, month=month, day=day, ra=ra, dec=dec, envdate=envdate, analysis=analysis)
 
     if not dofits:
         # Return tuple is (sequence number, gotRADec, readTIFF, wroteFITS)
@@ -819,7 +860,7 @@ def do_plate(row=None, dofits=False, analysis=''):
                              padding=False,
                              overwrite=True)
     # Return tuple is (sequence number, gotRADec, readTIFF, wroteFITS)
-    return (seqnum, (ra is not None) and (dec is not None), True, True)
+    return (seqnum, year, (ra is not None) and (dec is not None), True, True)
 
 
 def do_all(fname='', dofits=False, analysis=''):
@@ -844,16 +885,10 @@ def do_all(fname='', dofits=False, analysis=''):
     return results
 
 
-def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
-    imgmap = Image.frombytes(mode='L', size=(1800, 3600), data=covmap.astype('uint8') * 4).transpose(Image.ROTATE_90)
-    imgmap.save('C:/Data/Plates/covmap.png')
-    imgcount = Image.frombytes(mode='L', size=(1800, 3600), data=covcount.astype('uint8') * 4).transpose(
-        Image.ROTATE_90)
-    imgcount.save('C:/Data/Plates/covcount.png')
-
+def plotmap(title, countmap, filename=None, format='png'):
     # figure out the mapping of pixel coords to lat/lon for the image
-    lon = np.linspace(np.pi, -np.pi, covcount.shape[0])
-    lat = np.linspace(-np.pi / 2., np.pi / 2., covcount.shape[1])
+    lon = np.linspace(np.pi, -np.pi, countmap.shape[0])
+    lat = np.linspace(-np.pi / 2., np.pi / 2., countmap.shape[1])
     Lon, Lat = np.meshgrid(lon, lat)
 
     c = pyplot.get_cmap(name='jet')
@@ -861,11 +896,12 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
 
     fig = pyplot.figure(figsize=(16, 8), dpi=100)
     ax = fig.add_subplot(111, projection="mollweide")
-    ax.set_title('Astrographic plate coverage: %d plates, %d with valid RA/Dec' % (count, count_radec))
+    ax.set_title(title)
     ax.set_xticks(XT)
     ax.set_xticklabels(XTL)
     ax.set_ylabel('Declination', fontsize='large')
-    data = covcount.transpose().astype(np.float32)
+    data = countmap.transpose().astype(np.float32)
+    data = np.flip(data, axis=1)
     data[data == 0] = np.NaN
     im = ax.pcolormesh(Lon, Lat, data, cmap=c, vmax=20)
 
@@ -881,7 +917,37 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
     ax.tick_params(axis='x', labelsize=16)
     ax.tick_params(axis='y', labelsize=16)
 
-    pyplot.savefig('c:/data/plates/covcount-map.png', dpi=100)
+    if filename:
+        pyplot.savefig(filename, dpi=100)
+        pyplot.close(fig)
+    else:
+        buf = io.BytesIO()
+        pyplot.savefig(buf, format=format, dpi=100)
+        pyplot.close(fig)
+        buf.seek(0)
+        im = Image.open(buf)
+        im.load()
+        buf.close()
+        return im
+
+
+def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
+    imgmap = Image.frombytes(mode='L', size=(1800, 3600), data=covmap.astype('uint8') * 4).transpose(Image.ROTATE_90)
+    imgmap.save('D:/Data/Plates/covmap.png')
+    imgcount = Image.frombytes(mode='L', size=(1800, 3600), data=covcount.astype('uint8') * 4).transpose(
+        Image.ROTATE_90)
+    imgcount.save('D:/Data/Plates/covcount.png')
+
+    # Generate a single plot image showing all plates
+    plotmap(title='Astrographic plate coverage: %d plates, %d with valid RA/Dec' % (count, count_radec),
+            countmap=covcount,
+            filename='D:/data/plates/covcount-map.png')
+
+    # Generate a movie showing the progress over time
+    print('Generating movie')
+    image_files = glob.glob('D:/Data/plates/maps/*.png')
+    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=2)
+    clip.write_videofile('D:/Data/plates/Covcount-progress.mp4')
 
 
 # TODO - Write a copy of the header to a file on its own, so that Matt can send them to me
