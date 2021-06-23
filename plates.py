@@ -1,7 +1,5 @@
-
+import PIL.Image
 import argparse
-import copy
-import csv
 import datetime
 import glob
 import io
@@ -23,6 +21,8 @@ import matplotlib
 from matplotlib import pyplot
 import matplotlib.ticker as mticker
 
+import pandas as pd
+
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = 933120000
 
@@ -33,10 +33,22 @@ PR = 1.0   # Plate 'radius' - eg, 1.0 means a 2 x 2 degree square plate.
 ASTROGRAPHIC_POS = EarthLocation.from_geodetic(lon="116:08:11.36", lat="-32:00:27.98", height=386.0)
 
 VERSION = '1.0.0'
-TIFFDIRS = ['C:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
-FITSDIR = 'C:/Data/plates/fits'      # Base directory to write FITS files out to
-HDRDIR = 'C:/Data/plates/headers'
-LOGDIR = 'C:/Data/plates/logs'
+TIFFDIRS = ['D:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
+FITSDIR = 'D:/Data/plates/output/fits'      # Base directory to write FITS files out to
+HDRDIR = 'D:\\Data\\plates\\output\\headers'
+LOGDIR = 'D:\\Data\\plates\\output\\logs'
+JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
+THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
+
+# TIFFDIRS = ['D:/LW06/PlateScanBackups/LW06-1',
+#             'D:/LW06/PlateScanBackups/LW06-2',
+#             'D:/LW06/PlateScanBackups/LW06-3']   # List of directories to look for TIFF files in
+# FITSDIR = 'D:/LW06/PlateScanBackups/fits'      # Base directory to write FITS files out to
+# HDRDIR = 'D:/LW06/PlateScanBackups/headers'
+# LOGDIR = 'D:/LW06/PlateScanBackups/logs'
+# JPEGDIR = 'D:/LW06/PlateScanBackups/jpeg'
+# THUMBDIR = 'D:/LW06/PlateScanBackups/thumb'
+
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
@@ -55,6 +67,10 @@ XTL = np.arange(0, 24)
 XT = (XTL - 12) * np.pi / 12
 
 LASTYEAR = 1896
+
+WATERMARK_FILENAME = 'POVG.tif'
+
+WATERMARK = Image.open(WATERMARK_FILENAME, 'r')
 
 USAGE = """
 Takes a spreadsheet containing plate data, and either converts scanned TIFF
@@ -160,6 +176,50 @@ def get_headerfilename(tiffname='', platenum=''):
     return os.path.join(HDRDIR, subdir, 'plate%s.txt' % platenum)
 
 
+def get_fulljpegfilename(tiffname='', platenum=''):
+    """
+    Given a plate number, return a full path/filename to write the full-size JPEG file.
+
+    Use the last directory component from the original file name as a subdirectory to create the
+    JPEG file in.
+
+    :param tiffname: Full path/filename of original TIFF file
+    :param platenum: plate number
+    :return: output file path/name
+    """
+    if not tiffname:
+        return os.path.join(HDRDIR, 'ungrouped', 'plate%s.txt' % platenum)
+    dirlist = os.path.split(os.path.dirname(tiffname))
+    if len(dirlist) > 1:
+        subdir = dirlist[-1]    # the directory that the tiff file is in
+    else:
+        subdir = ''
+
+    return os.path.join(JPEGDIR, subdir, 'plate%s.jpeg' % platenum)
+
+
+def get_smalljpegfilename(tiffname='', platenum=''):
+    """
+    Given a plate number, return a full path/filename to write the thumbnail JPEG file.
+
+    Use the last directory component from the original file name as a subdirectory to create the
+    thumbnailJPEG file in.
+
+    :param tiffname: Full path/filename of original TIFF file
+    :param platenum: plate number
+    :return: output file path/name
+    """
+    if not tiffname:
+        return os.path.join(HDRDIR, 'ungrouped', 'plate%s.txt' % platenum)
+    dirlist = os.path.split(os.path.dirname(tiffname))
+    if len(dirlist) > 1:
+        subdir = dirlist[-1]    # the directory that the tiff file is in
+    else:
+        subdir = ''
+
+    return os.path.join(THUMBDIR, subdir, 'thumb%s.jpeg' % platenum)
+
+
 def isdone(tiffname='', platenum=''):
     """
     Returns true if the given plate number has already been processed
@@ -255,7 +315,7 @@ def parsehex(hexstring='', ra=True):
         return "Invalid seconds component in value: %s" % hexstring
 
     if ra:
-        if p1v >= 24:
+        if p1v >= 25:
             return "RA hours > 24: %s" % hexstring
     else:
         if p1v > 90:
@@ -268,8 +328,8 @@ def parsehex(hexstring='', ra=True):
         return "seconds > 60: %s" % hexstring
 
     val = p1v + (p2v / 60.0) + (p3v / 3600.0)
-    if ra and (val >= 24.0):
-        return "RA value > 24.0: %s" % hexstring
+    if ra and (val > 25.0):
+        return "RA value > 25.0: %s" % hexstring
     elif (not ra) and (val > 90.0):
         return "abs(Dec) value > 90.0: %s" % hexstring
     return val
@@ -341,8 +401,8 @@ def parseval(valstring='', ra=True):
     if type(rv) is not float:
         return rv
     else:
-        if ra and (rv >= 24.0):
-            return "RA value > 24.0: %s" % valstring
+        if ra and (rv > 25.0):
+            return "RA value > 25.0: %s" % valstring
         elif (not ra) and (rv > 90.0):
             return "abs(Dec) value > 90.0: %s" % valstring
         else:
@@ -402,6 +462,21 @@ def parsedate(datestring):
     return None    # Catch anything else
 
 
+def unfuckup_hhmmss(raw_tstring):
+    """
+    Takes a string that should be HH:MM:SS, but becuase Excel sucks, if the time is 00:00:00, it has
+    a leading '1900-01-05 ' in front of it.
+
+    :param raw_tstring: Broken Excel piece of crap time string
+    :return: Time in HH:MM:SS
+    """
+    raw_tstring = raw_tstring.strip()
+    if len(raw_tstring) == 19:
+        return raw_tstring[-8:]
+    else:
+        return raw_tstring
+
+
 def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', analysis=''):
     global covmap, covcount, LASTYEAR
 
@@ -424,7 +499,8 @@ def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', anal
 
     if year is not None:
         if year < LASTYEAR:
-            print("*** OH NO! Time is going backwards from %d to %d" % (LASTYEAR, year))
+            pass
+            # print("*** OH NO! Time is going backwards from %d to %d" % (LASTYEAR, year))
         elif year > LASTYEAR:
             for y in range(LASTYEAR, year):
                 plotmap(title='Astrographic plates, up to %04d' % y,
@@ -445,53 +521,63 @@ def do_plate(row=None, dofits=False, analysis=''):
     :param analysis: String that determines what analysis/plotting will be done
     :return: tuple with (sequence number, gotRADec, readTIFF, wroteFITS)
     """
-    (seqnum,  # A: Integer sequence number
-     scanner,  # B: Initials of the person doing the plate scan
-     scandate,  # C: Date scanned (DD-MM-YYYY)
-     platenum,  # D: String plate number (eg A23, 2435, etc)
 
-     scannedyn,  # E: Y if the plate has been scanned, otherwise N
-     platesize,  # F: L or S
+    # ['Plate Seq. #', 'Scanners Initials', 'Scanning Date', 'Plate #',
+    #        'Plate Scanned Y/N', 'Plate Size L/S', 'Telescope',
+    #        'Date (YYYY,MMM,DD/DD)', 'Epoch', 'R.A. (hms)', 'Dec. (dm)', 'Object',
+    #        'Object Type', 'Exposure Time Basis LST, ST, UT, WAST', 'Exposure Min',
+    #        'Start', 'End', 'Start.1', 'End.1', 'Start.2', 'End.2', 'Start.3',
+    #        'End.3', 'Guiding Initials', 'Guiding Settings', 'Hour Angle',
+    #        'East or West (E/W)', 'Temp', 'Transp', 'Scint', 'Emulsion', 'Box',
+    #        'Filter', 'Develop', 'Aperture', 'Grating', 'Remarks',
+    #        'Any other markings', 'Scanner Comments', 'LW06 Scanning Week #',
+    #        'R.A. (dec. deg.)', 'Dec. (dec. deg)']
 
-     telescope,  # G: Telescope name (string)
-     envdate,  # H: Date plate taken (YYYY,mmm,DD) where mmm is 'jan', 'feb', etc - eg '1901,may,23'
-     equinoxstr,  # I: Coordinate equinox for ra/dec - if blank, use 1900 and save warning msg
-     envra,  # J: RA, HHMMSS, unknown equinox (probably either B1900 or B1950)
-     envdec,  # K: Dec, [+/-]DDMM[SS], unknown equinox (probably either B1900 or B1950)
-     envobject,  # L: Object name string
-     envobjtype,  # M: Object type string
+    seqnum = row['Plate Seq. #']     # A: Integer sequence number
+    scanner = row['Scanners Initials']     # B: Initials of the person doing the plate scan
+    scandate = row['Scanning Date']     # C: Date scanned (DD-MM-YYYY)
+    platenum = row['Plate #']     # D: String plate number (eg A23, 2435, etc)
 
-     bookexpbasis,  # N: One of LST, UT, ST, WAST or AWST. If blank, use LST and save warning msg
-     bookexptimes,  # O: could be float, int, or a list of space seperated numbers,
-     # any of which might have parentheses around them. Eg '10 (20) 10'.
-     # Note that the space might be missing, eg '10(20) 10'
-     books1, booke1,  # P, Q: Exposure start and end times in LST, eg '8:56:32'
-     books2, booke2,  # R, S:
-     books3, booke3,  # T, U:
-     books4, booke4,  # V, W:
+    scannedyn = row['Plate Scanned Y/N']     # E: Y if the plate has been scanned, otherwise N
+    platesize = row['Plate Size L/S']     # F: L or S
 
-     envguider,  # X: Initials of the person guiding the telescope
-     envguidesettings,  # Y: Settings for the offset plate guider
-     envha,  # Z: Hour Angle of the target (at exposure start?). Usually blank.
-     envew,  # AA: Telescope tube is East (E) or West (W) of pier. Usually blank.
-     envtemp,  # AB: Temperature in deg C (usually blank). Usually blank.
-     envtransp,  # AC: Transp (float? No idea what it means). Usually blank.
-     envscint,  # AD: Scint - presumably scintillation, in arcsec? Usually blank.
-     envemulsion,  # AE: Emulstion type (string)
-     envbox,  # AF: Box. Usually blank. (string)
-     envfilter,  # AG: Filter. Usually blank. (string)
-     envdevelop,  # AH: Develop. Usually blank. (string)
-     envaperture,  # AI: Aperture. Usually blank. (string)
-     envgrating,  # AJ: Grating. Usually blank. (string)
-     envremarks,  # AK: Remarks written on envelope (string)
+    telescope = row['Telescope']     # G: Telescope name (string)
+    envdate = row['Date (YYYY,MMM,DD/DD)']     # H: Date plate taken (YYYY,mmm,DD) where mmm is 'jan', 'feb', etc - eg '1901,may,23'
+    equinoxstr = row['Epoch']     # I: Coordinate equinox for ra/dec - if blank, use 1900 and save warning msg
+    envra = row['R.A. (hms)']     # J: RA, HHMMSS, unknown equinox (probably either B1900 or B1950)
+    envdec = row['Dec. (dm)']     # K: Dec, [+/-]DDMM[SS], unknown equinox (probably either B1900 or B1950)
+    envobject = row['Object']     # L: Object name string
+    envobjtype = row['Object Type']     # M: Object type string
 
-     othermarkings,  # AL: Any other markings (string)
-     scannercomments,  # AM: Comments by the person scanning the plate (string)
-     scanningweek,   # AN: Week number that the plate was scanned
-     calc_ra,  # AO: RA in degrees, calculated from other columns (hand tuned?)
-     calc_dec,  # AP: Dec in degrees, calculated from other columns (hand tuned?)
-     *extras,    # Catch all for an extra columns
-     ) = tuple(row)
+    bookexpbasis = row['Exposure Time Basis LST, ST, UT, WAST']     # N: One of LST, UT, ST, WAST or AWST. If blank, use LST and save warning msg
+    bookexptimes = row['Exposure Min']     # O: could be float, int, or a list of space seperated numbers,
+    # any of which might have parentheses around them. Eg '10 (20) 10'.
+    # Note that the space might be missing, eg '10(20) 10'
+    books1, booke1 = unfuckup_hhmmss(row['Start']), unfuckup_hhmmss(row['End'])     # P, Q: Exposure start and end times in LST, eg '8:56:32'
+    books2, booke2 = unfuckup_hhmmss(row['Start.1']), unfuckup_hhmmss(row['End.1'] )    # R, S:
+    books3, booke3 = unfuckup_hhmmss(row['Start.2']), unfuckup_hhmmss(row['End.2'])     # T, U:
+    books4, booke4 = unfuckup_hhmmss(row['Start.3']), unfuckup_hhmmss(row['End.3'])     # V, W:
+
+    envguider = row['Guiding Initials']     # X: Initials of the person guiding the telescope
+    envguidesettings = row['Guiding Settings']     # Y: Settings for the offset plate guider
+    envha = row['Hour Angle']     # Z: Hour Angle of the target (at exposure start?). Usually blank.
+    envew = row['East or West (E/W)']     # AA: Telescope tube is East (E) or West (W) of pier. Usually blank.
+    envtemp = row['Temp']     # AB: Temperature in deg C (usually blank). Usually blank.
+    envtransp = row['Transp']     # AC: Transp (float? No idea what it means). Usually blank.
+    envscint = row['Scint']     # AD: Scint - presumably scintillation, in arcsec? Usually blank.
+    envemulsion = row['Emulsion']     # AE: Emulstion type (string)
+    envbox = row['Box']     # AF: Box. Usually blank. (string)
+    envfilter = row['Filter']     # AG: Filter. Usually blank. (string)
+    envdevelop = row['Develop']     # AH: Develop. Usually blank. (string)
+    envaperture = row['Aperture']     # AI: Aperture. Usually blank. (string)
+    envgrating = row['Grating']     # AJ: Grating. Usually blank. (string)
+    envremarks = row['Remarks']     # AK: Remarks written on envelope (string)
+
+    othermarkings = row['Any other markings']     # AL: Any other markings (string)
+    scannercomments = row['Scanner Comments']     # AM: Comments by the person scanning the plate (string)
+    scanningweek = row['LW06 Scanning Week #']      # AN: Week number that the plate was scanned
+    calc_ra = row['R.A. (dec. deg.)']     # AO: RA in degrees, calculated from other columns (hand tuned?)
+    calc_dec = row['Dec. (dec. deg)']     # AP: Dec in degrees, calculated from other columns (hand tuned?)
 
     # Convert any strings that might have unicode characters into ASCII, making an attempt
     # to choose ASCII characters that are as close to the unicode ones as possible (stripping
@@ -533,9 +619,10 @@ def do_plate(row=None, dofits=False, analysis=''):
                 ra = Angle(calc_ra / 15.0, unit=hour)
                 print('    Overriding weird RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
         else:
-            if ra is None:
-                print('    ', end='')
-            print('Seq# %s error: calc_ra of %1.4f degrees is outside 0 to 360 degree range' % (seqnum, calc_ra))
+            pass
+            # if ra is None:
+            #    print('    ', end='')
+            # print('Seq# %s error: calc_ra of %1.4f degrees is outside 0 to 360 degree range' % (seqnum, calc_ra))
     except ValueError:
         if (ra is None) and envra.strip():
             print('    Could not find valid RA for %s' % envra)
@@ -552,9 +639,10 @@ def do_plate(row=None, dofits=False, analysis=''):
                 dec = Angle(calc_dec, unit=deg)
                 print('    Overriding weird DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
         else:
-            if dec is None:
-                print('    ', end='')
-            print('Seq# %s error: calc_dec of %1.4f is outside -90 to +58 range' % (seqnum, calc_dec))
+            pass
+            # if dec is None:
+            #     print('    ', end='')
+            # print('Seq# %s error: calc_dec of %1.4f is outside -90 to +58 range' % (seqnum, calc_dec))
     except:
         if (dec is None) and envdec.strip():
             print('    Could not find valid DEC for %s' % envdec)
@@ -600,19 +688,41 @@ def do_plate(row=None, dofits=False, analysis=''):
                                                          get_outfilename(tiffname=tiff_filename, platenum=platenum)))
         else:
             tiff_img = Image.open(tiff_filename, 'r')
-            primary_hdu = fits.PrimaryHDU(np.frombuffer(tiff_img.tobytes(), dtype=np.uint16))
-            primary_hdu.data.shape = tiff_img.size
+            primary_hdu = fits.PrimaryHDU(np.array(tiff_img))
+            # primary_hdu.data.shape = tiff_img.size
             got_tiff = True
+
+            # Save JPEG and watermarked thumbnail of the plate scan
+            jpegname = get_fulljpegfilename(tiffname=tiff_filename, platenum=platenum)
+            thumbname = get_smalljpegfilename(tiffname=tiff_filename, platenum=platenum)
+            minpix, maxpix = primary_hdu.data.min(), primary_hdu.data.max()
+            print(minpix, maxpix)
+            scale = 1.0 / (maxpix - minpix)
+            print('Converting to L')
+            tiff_img = Image.fromarray(np.uint8(255.0 * (primary_hdu.data - minpix) * scale))
+            print('Saving large: %s, %s' % (tiff_img.getextrema(), tiff_img.mode))
+            tiff_img.save(jpegname, quality=20)
+            print('Generating thumbnail')
+            tiff_img.thumbnail((1000, 1000))
+            print('Converting to RGB')
+            tiff_img = tiff_img.convert(mode='RGB')
+            print('Blending watermark')
+            thumb = PIL.Image.blend(tiff_img, WATERMARK, 0.05)
+            print('Saving')
+            thumb.save(thumbname)
+            print('Saved.')
+            del tiff_img
+            del thumb
 
     cover_filename = get_coverfilename(platenum=platenum)
     cover_hdu = None
-    if (cover_filename is None) or (not os.path.exists(cover_filename)):
-        # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
-        pass
-    elif got_tiff:
-        cover_img = Image.open(cover_filename, 'r')
-        cover_hdu = fits.ImageHDU(np.frombuffer(cover_img.tobytes(), dtype=np.uint8))
-        cover_hdu.data.shape = cover_img.size
+    # if (cover_filename is None) or (not os.path.exists(cover_filename)):
+    #     # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
+    #     pass
+    # elif got_tiff:
+    #     cover_img = Image.open(cover_filename, 'r')
+    #     cover_hdu = fits.ImageHDU(np.array(cover_img))
+    #     # cover_hdu.data.shape = cover_img.size
 
     head = primary_hdu.header
     head.set('SIMPLE', 'T', 'File does conform to FITS standard')
@@ -626,6 +736,7 @@ def do_plate(row=None, dofits=False, analysis=''):
     head.set('INSTRUME', instrument, 'Instrument')
     head.set('OBSERVER', envguider, 'Person guiding the telescope')
     head.set('OBJECT', envobject, 'Target name')
+    head.set('OBJTYPE', envobjtype, 'Object type code')
     head.set('GUIDER', envguidesettings, 'Guider Settings')
     head.set('SEQNUM', int(seqnum), 'Plate scanning sequence number')
     head.set('PLATE', platenum, 'Plate number')
@@ -860,12 +971,13 @@ def do_plate(row=None, dofits=False, analysis=''):
                              padding=False,
                              overwrite=True)
     # Return tuple is (sequence number, gotRADec, readTIFF, wroteFITS)
-    return (seqnum, year, (ra is not None) and (dec is not None), True, True)
+
+    return (seqnum, (ra is not None) and (dec is not None), True, True)
 
 
 def do_all(fname='', dofits=False, analysis=''):
     """
-    Given a CSV file name, process all the TIFF files that have not yet been processed.
+    Given a XLSX spreadsheet file name, process all the TIFF files that have not yet been processed.
 
     :param fname:
     :param dofits: If True, write out converted fits files.
@@ -873,19 +985,21 @@ def do_all(fname='', dofits=False, analysis=''):
     :return:
     """
     results = []
-    with open(fname, newline='') as csvfile:
-        spamreader = csv.reader(csvfile)
-        rownum = 0
-        for row in spamreader:
-            rownum += 1
-            (seqnum, *_) = tuple(row)
-            if not seqnum.strip().isdigit():
-                continue  # Skip header lines
-            results.append(do_plate(row=row, dofits=dofits, analysis=analysis))
+    df = pd.read_excel(fname, dtype=str, keep_default_na=False)
+    rownum = 0
+    for row in df.iterrows():
+        pdr = row[1]
+        rownum += 1
+        seqnum = pdr['Plate Seq. #']
+        if not seqnum.strip().isdigit():
+            continue  # Skip header lines
+        if True:
+            # print(seqnum, pdr['Start'], pdr['End'], pdr['Start.1'], pdr['End.1'], pdr['Start.2'], pdr['End.2'], pdr['Start.3'], pdr['End.3'])
+            results.append(do_plate(row=row[1], dofits=dofits, analysis=analysis))
     return results
 
 
-def plotmap(title, countmap, filename=None, format='png'):
+def plotmap(title, countmap, filename=None, ftype='png'):
     # figure out the mapping of pixel coords to lat/lon for the image
     lon = np.linspace(np.pi, -np.pi, countmap.shape[0])
     lat = np.linspace(-np.pi / 2., np.pi / 2., countmap.shape[1])
@@ -922,7 +1036,7 @@ def plotmap(title, countmap, filename=None, format='png'):
         pyplot.close(fig)
     else:
         buf = io.BytesIO()
-        pyplot.savefig(buf, format=format, dpi=100)
+        pyplot.savefig(buf, format=ftype, dpi=100)
         pyplot.close(fig)
         buf.seek(0)
         im = Image.open(buf)
@@ -948,11 +1062,6 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
     image_files = glob.glob('D:/Data/plates/maps/*.png')
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=2)
     clip.write_videofile('D:/Data/plates/Covcount-progress.mp4')
-
-
-# TODO - Write a copy of the header to a file on its own, so that Matt can send them to me
-#      - Do proper logging, so I can see more about what's happening in the log file.
-#      - Decide what to do about a return value for the do_plate() function
 
 
 if __name__ == '__main__':
