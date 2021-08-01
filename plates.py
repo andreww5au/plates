@@ -49,7 +49,7 @@ HDRDIR = 'D:\\LW06\\PlateScanBackups\\output\\headers'
 LOGDIR = 'D:\\LW06\\PlateScanBackups\\output\\logs'
 JPEGDIR = 'D:\\LW06\\PlateScanBackups\\output\\jpegs'
 THUMBDIR = 'D:\\LW06\\PlateScanBackups\\output\\thumb'
-MAPDIR = 'D:\\LW006\\PlateScanBackups\\output\\maps'
+MAPDIR = 'D:\\LW06\\PlateScanBackups\\output\\maps'
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
@@ -704,16 +704,21 @@ def do_plate(row=None, dofits=False, analysis=''):
             print('Saving large: %s, %s' % (tiff_img.getextrema(), tiff_img.mode))
             tiff_img.save(jpegname, quality=20)
             print('Generating thumbnail')
-            tiff_img.thumbnail((1000, 1000))
-            print('Converting to RGB')
-            tiff_img = tiff_img.convert(mode='RGB')
-            print('Blending watermark')
-            thumb = PIL.Image.blend(tiff_img, WATERMARK, 0.05)
-            print('Saving')
-            thumb.save(thumbname)
-            print('Saved.')
+            try:
+                tiff_img.thumbnail((1000, 1000))
+                print('Converting to RGB')
+                tiff_img = tiff_img.convert(mode='RGB')
+                print('Blending watermark')
+                thumb = PIL.Image.blend(tiff_img, WATERMARK, 0.05)
+                print('Saving')
+                thumb.save(thumbname)
+                print('Saved.')
+                del thumb
+            except:
+                print('Error generating thumbnail:')
+                traceback.print_exc()
+                print('Skipping thumbnail creation.')
             del tiff_img
-            del thumb
 
     cover_filename = get_coverfilename(platenum=platenum)
     cover_hdu = None
