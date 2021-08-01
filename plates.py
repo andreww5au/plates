@@ -39,7 +39,7 @@ VERSION = '1.0.0'
 # LOGDIR = 'D:\\Data\\plates\\output\\logs'
 # JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
 # THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
-# MAPDIR = 'D:\\Data\\plates\output\maps
+# MAPDIR = 'D:\\Data\\plates\output\maps'
 
 TIFFDIRS = ['D:\\LW06\\PlateScanBackups\\LW06-1',
             'D:\\LW06\\PlateScanBackups\\LW06-2',
@@ -507,7 +507,7 @@ def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', anal
                 plotmap(title='Astrographic plates, up to %04d' % y,
                         countmap=covcount,
                         ftype='png',
-                        filename='%s/progress-%02d.png' % (MAPDIR, y))
+                        filename='%s\\progress-%02d.png' % (MAPDIR, y))
             LASTYEAR = year
 
 
