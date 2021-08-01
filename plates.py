@@ -33,21 +33,21 @@ PR = 1.0   # Plate 'radius' - eg, 1.0 means a 2 x 2 degree square plate.
 ASTROGRAPHIC_POS = EarthLocation.from_geodetic(lon="116:08:11.36", lat="-32:00:27.98", height=386.0)
 
 VERSION = '1.0.0'
-TIFFDIRS = ['D:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
-FITSDIR = 'D:/Data/plates/output/fits'      # Base directory to write FITS files out to
-HDRDIR = 'D:\\Data\\plates\\output\\headers'
-LOGDIR = 'D:\\Data\\plates\\output\\logs'
-JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
-THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
+# TIFFDIRS = ['D:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
+# FITSDIR = 'D:/Data/plates/output/fits'      # Base directory to write FITS files out to
+# HDRDIR = 'D:\\Data\\plates\\output\\headers'
+# LOGDIR = 'D:\\Data\\plates\\output\\logs'
+# JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
+# THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
 
-# TIFFDIRS = ['D:/LW06/PlateScanBackups/LW06-1',
-#             'D:/LW06/PlateScanBackups/LW06-2',
-#             'D:/LW06/PlateScanBackups/LW06-3']   # List of directories to look for TIFF files in
-# FITSDIR = 'D:/LW06/PlateScanBackups/fits'      # Base directory to write FITS files out to
-# HDRDIR = 'D:/LW06/PlateScanBackups/headers'
-# LOGDIR = 'D:/LW06/PlateScanBackups/logs'
-# JPEGDIR = 'D:/LW06/PlateScanBackups/jpeg'
-# THUMBDIR = 'D:/LW06/PlateScanBackups/thumb'
+TIFFDIRS = ['D:/LW06/PlateScanBackups/LW06-1',
+            'D:/LW06/PlateScanBackups/LW06-2',
+            'D:/LW06/PlateScanBackups/LW06-3']   # List of directories to look for TIFF files in
+FITSDIR = 'D:/LW06/PlateScanBackups/fits'      # Base directory to write FITS files out to
+HDRDIR = 'D:/LW06/PlateScanBackups/headers'
+LOGDIR = 'D:/LW06/PlateScanBackups/conv_logs'
+JPEGDIR = 'D:/LW06/PlateScanBackups/jpegs'
+THUMBDIR = 'D:/LW06/PlateScanBackups/thumb'
 
 
 MONTHS = {'jan':1, 'january':1,
