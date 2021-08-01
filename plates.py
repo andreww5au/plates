@@ -709,7 +709,7 @@ def do_plate(row=None, dofits=False, analysis=''):
                 print('Converting to RGB')
                 tiff_img = tiff_img.convert(mode='RGB')
                 print('Blending watermark')
-                thumb = PIL.Image.blend(tiff_img, WATERMARK, 0.05)
+                thumb = PIL.Image.blend(tiff_img, WATERMARK.resize(size=tiff_img.size), 0.05)
                 print('Saving')
                 thumb.save(thumbname)
                 print('Saved.')
