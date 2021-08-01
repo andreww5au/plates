@@ -505,7 +505,7 @@ def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', anal
             for y in range(LASTYEAR, year):
                 plotmap(title='Astrographic plates, up to %04d' % y,
                         countmap=covcount,
-                        format='png',
+                        ftype='png',
                         filename='D:/data/plates/maps/progress-%02d.png' % y)
             LASTYEAR = year
 
