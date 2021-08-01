@@ -39,16 +39,17 @@ VERSION = '1.0.0'
 # LOGDIR = 'D:\\Data\\plates\\output\\logs'
 # JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
 # THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
+# MAPDIR = 'D:\\Data\\plates\output\maps
 
-TIFFDIRS = ['D:/LW06/PlateScanBackups/LW06-1',
-            'D:/LW06/PlateScanBackups/LW06-2',
-            'D:/LW06/PlateScanBackups/LW06-3']   # List of directories to look for TIFF files in
-FITSDIR = 'D:/LW06/PlateScanBackups/fits'      # Base directory to write FITS files out to
-HDRDIR = 'D:/LW06/PlateScanBackups/headers'
-LOGDIR = 'D:/LW06/PlateScanBackups/conv_logs'
-JPEGDIR = 'D:/LW06/PlateScanBackups/jpegs'
-THUMBDIR = 'D:/LW06/PlateScanBackups/thumb'
-
+TIFFDIRS = ['D:\\LW06\\PlateScanBackups\\LW06-1',
+            'D:\\LW06\\PlateScanBackups\\LW06-2',
+            'D:\\LW06\\PlateScanBackups\\LW06-3']   # List of directories to look for TIFF files in
+FITSDIR = 'D:\\LW06\\PlateScanBackups\\output\\fits'      # Base directory to write FITS files out to
+HDRDIR = 'D:\\LW06\\PlateScanBackups\\output\\headers'
+LOGDIR = 'D:\\LW06\\PlateScanBackups\\output\\logs'
+JPEGDIR = 'D:\\LW06\\PlateScanBackups\\output\\jpegs'
+THUMBDIR = 'D:\\LW06\\PlateScanBackups\\output\\thumb'
+MAPDIR = 'D:\\LW006\\PlateScanBackups\\output\\maps'
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
@@ -506,7 +507,7 @@ def dostats(year=None, month=None, day=None, ra=None, dec=None, envdate='', anal
                 plotmap(title='Astrographic plates, up to %04d' % y,
                         countmap=covcount,
                         ftype='png',
-                        filename='D:/data/plates/maps/progress-%02d.png' % y)
+                        filename='%s/progress-%02d.png' % (MAPDIR, y))
             LASTYEAR = year
 
 
@@ -1059,7 +1060,7 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
 
     # Generate a movie showing the progress over time
     print('Generating movie')
-    image_files = glob.glob('D:/Data/plates/maps/*.png')
+    image_files = glob.glob('%s/*.png' % MAPDIR)
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=2)
     clip.write_videofile('D:/Data/plates/Covcount-progress.mp4')
 
