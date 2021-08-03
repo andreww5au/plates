@@ -3,6 +3,8 @@ import argparse
 import datetime
 import glob
 import io
+import logging
+from logging import handlers
 import os
 import traceback
 import warnings
@@ -81,6 +83,22 @@ or both.
 
 # Suppress the warnings from astropy about lack of precision for dates earlier than 1950's
 warnings.filterwarnings("ignore")
+
+LOGFILE = os.path.join(LOGDIR, 'plates.log')
+LOGLEVEL_CONSOLE = logging.INFO    # INFO and above will be printed to STDOUT as well as the logfile
+LOGLEVEL_LOGFILE = logging.DEBUG   # All messages will be sent to the log file
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+fh = handlers.RotatingFileHandler(LOGFILE, maxBytes=1000000000, backupCount=5)  # 1 Gb per file, max of five old log files
+fh.setLevel(LOGLEVEL_LOGFILE)
+
+ch = logging.StreamHandler()
+ch.setLevel(LOGLEVEL_CONSOLE)
+
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 
 class DateError(ValueError):
@@ -595,7 +613,7 @@ def do_plate(row=None, dofits=False, analysis=''):
         if (len(envra.strip()) > 1) or (envra.strip() == '0'):
             rv = parseval(valstring=envra, ra=True)
             if type(rv) is not float:
-                print("Seq# %s error in RA: %s" % (seqnum, rv))
+                logger.error("Seq# %s error in RA: %s" % (seqnum, rv))
             else:
                 ra = Angle(rv, unit=hour)
 
@@ -604,7 +622,7 @@ def do_plate(row=None, dofits=False, analysis=''):
         if (len(envdec.strip()) > 1) or (envdec.strip() == '0'):
             rv = parseval(valstring=envdec, ra=False)
             if type(rv) is not float:
-                print("Seq# %s error in Dec: %s" % (seqnum, rv))
+                logger.error("Seq# %s error in Dec: %s" % (seqnum, rv))
             else:
                 dec = Angle(rv, unit=deg)
 
@@ -615,10 +633,10 @@ def do_plate(row=None, dofits=False, analysis=''):
             if (ra is not None):
                 radiff = (ra.hour * 15) - calc_ra
                 if radiff > 1.0:
-                    print("Seq# %s Warning: RA=%s renders to %1.1f hours, not calc_ra of %1.1f hours" % (seqnum, envra, ra.hour, calc_ra / 15.0))
+                    logger.error("Seq# %s Warning: RA=%s renders to %1.1f hours, not calc_ra of %1.1f hours" % (seqnum, envra, ra.hour, calc_ra / 15.0))
             else:
                 ra = Angle(calc_ra / 15.0, unit=hour)
-                print('    Overriding weird RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
+                logger.error('    Overriding weird RA of %s with value %1.4f hours from calc_ra' % (envra, calc_ra / 15.0))
         else:
             pass
             # if ra is None:
@@ -626,7 +644,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             # print('Seq# %s error: calc_ra of %1.4f degrees is outside 0 to 360 degree range' % (seqnum, calc_ra))
     except ValueError:
         if (ra is None) and envra.strip():
-            print('    Could not find valid RA for %s' % envra)
+            logger.error('    Could not find valid RA for %s' % envra)
 
     decdiff = None
     try:
@@ -635,10 +653,10 @@ def do_plate(row=None, dofits=False, analysis=''):
             if (dec is not None):
                 decdiff = dec.deg - calc_dec
                 if decdiff > 1.0:
-                    print("Seq# %s Warning: DEC=%s renders to %1.1f, not calc_dec of %1.1f" % (seqnum, envdec, dec.deg, calc_dec))
+                    logger.error("Seq# %s Warning: DEC=%s renders to %1.1f, not calc_dec of %1.1f" % (seqnum, envdec, dec.deg, calc_dec))
             else:
                 dec = Angle(calc_dec, unit=deg)
-                print('    Overriding weird DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
+                logger.error('    Overriding weird DEC of %s with value %1.4f from calc_dec' % (envdec, calc_dec))
         else:
             pass
             # if dec is None:
@@ -646,7 +664,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             # print('Seq# %s error: calc_dec of %1.4f is outside -90 to +58 range' % (seqnum, calc_dec))
     except:
         if (dec is None) and envdec.strip():
-            print('    Could not find valid DEC for %s' % envdec)
+            logger.error('    Could not find valid DEC for %s' % envdec)
 
     try:
         if '&' in envdate:
@@ -683,12 +701,17 @@ def do_plate(row=None, dofits=False, analysis=''):
         # print('Seq# %s File %s not found' % (seqnum, tiff_filename))
         pass
     else:
-        print('Seq# %s File %s found' % (seqnum, tiff_filename))
+        logger.info('Seq# %s File %s found' % (seqnum, tiff_filename))
         if isdone(tiffname=tiff_filename, platenum=platenum):
-            print('Seq# %s File %s already processed' % (seqnum,
+            logger.info('Seq# %s File %s already processed' % (seqnum,
                                                          get_outfilename(tiffname=tiff_filename, platenum=platenum)))
         else:
-            tiff_img = Image.open(tiff_filename, 'r')
+            try:
+                tiff_img = Image.open(tiff_filename, 'r')
+            except:
+                logger.exception('Could not open TIFF image, skipping FITS file creation')
+                return (seqnum, (ra is not None) and (dec is not None), False, False)
+
             primary_hdu = fits.PrimaryHDU(np.array(tiff_img))
             # primary_hdu.data.shape = tiff_img.size
             got_tiff = True
@@ -697,27 +720,26 @@ def do_plate(row=None, dofits=False, analysis=''):
             jpegname = get_fulljpegfilename(tiffname=tiff_filename, platenum=platenum)
             thumbname = get_smalljpegfilename(tiffname=tiff_filename, platenum=platenum)
             minpix, maxpix = primary_hdu.data.min(), primary_hdu.data.max()
-            print(minpix, maxpix)
+            logger.debug(minpix, maxpix)
             scale = 1.0 / (maxpix - minpix)
-            print('Converting to L')
+            logger.debug('Converting to L')
             tiff_img = Image.fromarray(np.uint8(255.0 * (primary_hdu.data - minpix) * scale))
-            print('Saving large: %s, %s' % (tiff_img.getextrema(), tiff_img.mode))
+            logger.info('Saving large: %s, %s' % (tiff_img.getextrema(), tiff_img.mode))
             tiff_img.save(jpegname, quality=20)
-            print('Generating thumbnail')
+            logger.info('Generating thumbnail')
             try:
                 tiff_img.thumbnail((1000, 1000))
-                print('Converting to RGB')
+                logger.debug('Converting to RGB')
                 tiff_img = tiff_img.convert(mode='RGB')
-                print('Blending watermark')
+                logger.debug('Blending watermark')
                 thumb = PIL.Image.blend(tiff_img, WATERMARK.resize(size=tiff_img.size), 0.05)
-                print('Saving')
+                logger.info('Saving thumbnail')
                 thumb.save(thumbname)
-                print('Saved.')
+                logger.debug('Saved.')
                 del thumb
             except:
-                print('Error generating thumbnail:')
-                traceback.print_exc()
-                print('Skipping thumbnail creation.')
+                logger.exception('Error generating thumbnail:')
+                logger.error('Skipping thumbnail creation.')
             del tiff_img
 
     cover_filename = get_coverfilename(platenum=platenum)
@@ -894,11 +916,11 @@ def do_plate(row=None, dofits=False, analysis=''):
 
                 head.set('EXPTIME', exptime, 'Total exposure time in seconds')
     except DateError:
-        print('Seq# %s missing or invalid date: %s' % (seqnum, envdate))
+        logger.error('Seq# %s missing or invalid date: %s' % (seqnum, envdate))
         head.set('DATE-OBS', envdate, 'Date of observation')
     except:
         head.set('DATE-OBS', envdate, 'Date of observation')
-        print("Seq# %s error in parsing date/times: %s" % (seqnum, traceback.format_exc()))
+        logger.error("Seq# %s error in parsing date/times: %s" % (seqnum, traceback.format_exc()))
 
     if books1T and booke1T:
         head.set('LSTART1', books1T.sidereal_time('apparent').to_string(unit=hour, sep=':', pad=True), 'LST at start of exposure')
@@ -960,9 +982,9 @@ def do_plate(row=None, dofits=False, analysis=''):
         head.set('ALT', int(target_app.alt.deg * 10) / 10, 'Altitude in Degrees')
         head.set('AZ', int(target_app.az.deg * 10) / 10, 'Azimuth in Degrees')
         if target_app.alt.deg < 0:
-            print("Seq# %s has Alt=%1.1f, Az=%1.1f and is below horizon" % (seqnum,
-                                                                            target_app.alt.deg,
-                                                                            target_app.az.deg))
+            logger.error("Seq# %s has Alt=%1.1f, Az=%1.1f and is below horizon" % (seqnum,
+                                                                                   target_app.alt.deg,
+                                                                                   target_app.az.deg))
             head.set('COMMENT', 'WARNING - Altitude of %1.1f deg is below horizon' % target_app.alt.deg)
 
     if cover_hdu:
@@ -1064,7 +1086,7 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
             filename='D:/data/plates/covcount-map.png')
 
     # Generate a movie showing the progress over time
-    print('Generating movie')
+    logger.info('Generating movie')
     image_files = glob.glob('%s/*.png' % MAPDIR)
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=2)
     clip.write_videofile('D:/Data/plates/Covcount-progress.mp4')
@@ -1085,7 +1107,7 @@ if __name__ == '__main__':
     covmap = np.zeros(shape=(3600, 1800), dtype=np.int32)
     covcount = np.zeros(shape=(3600, 1800), dtype=np.int32)
 
-    print(options.fnames)
+    logger.debug(options.fnames)
     fnames = []
     for fname in options.fnames:
         fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
@@ -1109,3 +1131,18 @@ if __name__ == '__main__':
             count_fits += 1
 
     genplots(count=count, count_radec=count_radec, count_tiff=count_tiff, count_fits=count_fits)
+
+"""
+Seq# 3876 File D:\LW06\PlateScanBackups\LW06-2\Plate10375M001.tif found
+Traceback (most recent call last):
+  File "plates.py", line 1095, in <module>
+    results += do_all(fname, dofits=options.dofits, analysis=options.analysis)
+  File "plates.py", line 1004, in do_all
+    results.append(do_plate(row=row[1], dofits=dofits, analysis=analysis))
+  File "plates.py", line 691, in do_plate
+    tiff_img = Image.open(tiff_filename, 'r')
+  File "C:\Users\DClogin\PycharmProjects\plates\venv\lib\site-packages\PIL\Image.py", line 2930, in open
+    raise UnidentifiedImageError(
+PIL.UnidentifiedImageError: cannot identify image file 'D:\\LW06\\PlateScanBackups\\LW06-2\\Plate10375M001.tif'
+
+"""
