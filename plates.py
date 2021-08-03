@@ -1131,18 +1131,3 @@ if __name__ == '__main__':
             count_fits += 1
 
     genplots(count=count, count_radec=count_radec, count_tiff=count_tiff, count_fits=count_fits)
-
-"""
-Seq# 3876 File D:\LW06\PlateScanBackups\LW06-2\Plate10375M001.tif found
-Traceback (most recent call last):
-  File "plates.py", line 1095, in <module>
-    results += do_all(fname, dofits=options.dofits, analysis=options.analysis)
-  File "plates.py", line 1004, in do_all
-    results.append(do_plate(row=row[1], dofits=dofits, analysis=analysis))
-  File "plates.py", line 691, in do_plate
-    tiff_img = Image.open(tiff_filename, 'r')
-  File "C:\Users\DClogin\PycharmProjects\plates\venv\lib\site-packages\PIL\Image.py", line 2930, in open
-    raise UnidentifiedImageError(
-PIL.UnidentifiedImageError: cannot identify image file 'D:\\LW06\\PlateScanBackups\\LW06-2\\Plate10375M001.tif'
-
-"""
