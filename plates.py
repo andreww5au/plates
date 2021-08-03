@@ -720,7 +720,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             jpegname = get_fulljpegfilename(tiffname=tiff_filename, platenum=platenum)
             thumbname = get_smalljpegfilename(tiffname=tiff_filename, platenum=platenum)
             minpix, maxpix = primary_hdu.data.min(), primary_hdu.data.max()
-            logger.debug(minpix, maxpix)
+            logger.debug("minpix=%d, maxpix=%d % "(minpix, maxpix))
             scale = 1.0 / (maxpix - minpix)
             logger.debug('Converting to L')
             tiff_img = Image.fromarray(np.uint8(255.0 * (primary_hdu.data - minpix) * scale))
@@ -1110,7 +1110,7 @@ if __name__ == '__main__':
     covmap = np.zeros(shape=(3600, 1800), dtype=np.int32)
     covcount = np.zeros(shape=(3600, 1800), dtype=np.int32)
 
-    logger.debug(options.fnames)
+    logger.info("Filenames=%s" % (options.fnames,))
     fnames = []
     for fname in options.fnames:
         fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
