@@ -720,7 +720,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             jpegname = get_fulljpegfilename(tiffname=tiff_filename, platenum=platenum)
             thumbname = get_smalljpegfilename(tiffname=tiff_filename, platenum=platenum)
             minpix, maxpix = primary_hdu.data.min(), primary_hdu.data.max()
-            logger.debug("minpix=%d, maxpix=%d % "(minpix, maxpix))
+            logger.debug("minpix=%d, maxpix=%d" % (minpix, maxpix))
             scale = 1.0 / (maxpix - minpix)
             logger.debug('Converting to L')
             tiff_img = Image.fromarray(np.uint8(255.0 * (primary_hdu.data - minpix) * scale))
