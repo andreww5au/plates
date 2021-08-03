@@ -1003,13 +1003,14 @@ def do_plate(row=None, dofits=False, analysis=''):
     return (seqnum, (ra is not None) and (dec is not None), True, True)
 
 
-def do_all(fname='', dofits=False, analysis=''):
+def do_all(fname='', dofits=False, analysis='', startat=0):
     """
     Given a XLSX spreadsheet file name, process all the TIFF files that have not yet been processed.
 
     :param fname:
     :param dofits: If True, write out converted fits files.
     :param analysis: String that determines what analysis/plotting will be done
+    :param startat: Skip all sequence numbers less than this
     :return:
     """
     results = []
@@ -1021,7 +1022,7 @@ def do_all(fname='', dofits=False, analysis=''):
         seqnum = pdr['Plate Seq. #']
         if not seqnum.strip().isdigit():
             continue  # Skip header lines
-        if True:
+        if int(seqnum) >= startat:
             # print(seqnum, pdr['Start'], pdr['End'], pdr['Start.1'], pdr['End.1'], pdr['Start.2'], pdr['End.2'], pdr['Start.3'], pdr['End.3'])
             results.append(do_plate(row=row[1], dofits=dofits, analysis=analysis))
     return results
@@ -1100,6 +1101,8 @@ if __name__ == '__main__':
                         help='If specified, convert any TIFF files found to FITS files')
     parser.add_argument('--analysis', default='',
                         help='If specified, carry out the specified stats analysis')
+    parser.add_argument('--startat', default=0,
+                        help='Sequence number to start processing at')
     parser.add_argument('--fitsdir', default=FITSDIR,
                         help='Directory to write FITS files to - default %s' % FITSDIR)
     options = parser.parse_args()
@@ -1114,7 +1117,7 @@ if __name__ == '__main__':
 
     results = []
     for fname in fnames:
-        results += do_all(fname, dofits=options.dofits, analysis=options.analysis)
+        results += do_all(fname, dofits=options.dofits, analysis=options.analysis, startat=int(options.startat))
 
     count = 0
     count_radec = 0
