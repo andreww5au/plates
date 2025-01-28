@@ -1095,8 +1095,8 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=USAGE)
-    parser.add_argument('fnames', default='NewPlatesData.csv',
-                        help='CSV file/s to use as input')
+    # parser.add_argument('fnames', default='NewPlatesData.csv',
+    #                     help='CSV file/s to use as input')
     parser.add_argument('--dofits', default=False, action='store_true',
                         help='If specified, convert any TIFF files found to FITS files')
     parser.add_argument('--analysis', default='',
@@ -1110,10 +1110,10 @@ if __name__ == '__main__':
     covmap = np.zeros(shape=(3600, 1800), dtype=np.int32)
     covcount = np.zeros(shape=(3600, 1800), dtype=np.int32)
 
-    logger.info("Filenames=%s" % (options.fnames,))
-    fnames = []
-    for fname in options.fnames:
-        fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
+    fnames = ['NewPlatesData.csv']
+    logger.info("Filenames=%s" % (fnames,))
+    # for fname in fnames:
+    #     fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
 
     results = []
     for fname in fnames:
