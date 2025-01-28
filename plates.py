@@ -43,15 +43,15 @@ VERSION = '1.0.0'
 # THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
 # MAPDIR = 'D:\\Data\\plates\output\maps'
 
-TIFFDIRS = ['D:\\LW06\\PlateScanBackups\\LW06-1',
-            'D:\\LW06\\PlateScanBackups\\LW06-2',
-            'D:\\LW06\\PlateScanBackups\\LW06-3']   # List of directories to look for TIFF files in
-FITSDIR = 'D:\\LW06\\PlateScanBackups\\output\\fits'      # Base directory to write FITS files out to
-HDRDIR = 'D:\\LW06\\PlateScanBackups\\output\\headers'
-LOGDIR = 'D:\\LW06\\PlateScanBackups\\output\\logs'
-JPEGDIR = 'D:\\LW06\\PlateScanBackups\\output\\jpegs'
-THUMBDIR = 'D:\\LW06\\PlateScanBackups\\output\\thumb'
-MAPDIR = 'D:\\LW06\\PlateScanBackups\\output\\maps'
+TIFFDIRS = ['D:\\ScannedData\\Plates\\LW06-1',
+            'D:\\ScannedData\\Plates\\LW06-2',
+            'D:\\ScannedData\\Plates\\LW06-3']   # List of directories to look for TIFF files in
+FITSDIR = 'D:\\ResolvedData\\ProcessedScans\\fits'      # Base directory to write FITS files out to
+HDRDIR = 'D:\\ResolvedData\\ProcessedScans\\headers'
+LOGDIR = 'D:\\ResolvedData\\ProcessedScans\\logs'
+JPEGDIR = 'D:\\ResolvedData\\ProcessedScans\\jpegs'
+THUMBDIR = 'D:\\ResolvedData\\ProcessedScans\\thumb'
+MAPDIR = 'D:\\ResolvedData\\ProcessedScans\\maps'
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
@@ -1095,7 +1095,7 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=USAGE)
-    parser.add_argument('fnames', default='', nargs='+',
+    parser.add_argument('fnames', default='NewPlatesData.csv', nargs='+',
                         help='CSV file/s to use as input')
     parser.add_argument('--dofits', default=False, action='store_true',
                         help='If specified, convert any TIFF files found to FITS files')
