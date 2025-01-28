@@ -1095,7 +1095,7 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=USAGE)
-    parser.add_argument('fnames', default='NewPlatesData.csv', nargs='+',
+    parser.add_argument('fnames', default='NewPlatesData.csv',
                         help='CSV file/s to use as input')
     parser.add_argument('--dofits', default=False, action='store_true',
                         help='If specified, convert any TIFF files found to FITS files')
