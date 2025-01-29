@@ -35,23 +35,23 @@ PR = 1.0   # Plate 'radius' - eg, 1.0 means a 2 x 2 degree square plate.
 ASTROGRAPHIC_POS = EarthLocation.from_geodetic(lon="116:08:11.36", lat="-32:00:27.98", height=386.0)
 
 VERSION = '1.0.0'
-TIFFDIRS = ['D:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
-FITSDIR = 'D:/Data/plates/output/fits'      # Base directory to write FITS files out to
-HDRDIR = 'D:\\Data\\plates\\output\\headers'
-LOGDIR = 'D:\\Data\\plates\\output\\logs'
-JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
-THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
-MAPDIR = 'D:\\Data\\plates\output\maps'
+# TIFFDIRS = ['D:/Data/plates/tiff/testing1']   # List of directories to look for TIFF files in
+# FITSDIR = 'D:/Data/plates/output/fits'      # Base directory to write FITS files out to
+# HDRDIR = 'D:\\Data\\plates\\output\\headers'
+# LOGDIR = 'D:\\Data\\plates\\output\\logs'
+# JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
+# THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
+# MAPDIR = 'D:\\Data\\plates\output\maps'
 
-# TIFFDIRS = ['D:\\ScannedData\\Plates\\LW06-1',
-#             'D:\\ScannedData\\Plates\\LW06-2',
-#             'D:\\ScannedData\\Plates\\LW06-3']   # List of directories to look for TIFF files in
-# FITSDIR = 'D:\\ResolvedData\\ProcessedScans\\fits'      # Base directory to write FITS files out to
-# HDRDIR = 'D:\\ResolvedData\\ProcessedScans\\headers'
-# LOGDIR = 'D:\\ResolvedData\\ProcessedScans\\logs'
-# JPEGDIR = 'D:\\ResolvedData\\ProcessedScans\\jpegs'
-# THUMBDIR = 'D:\\ResolvedData\\ProcessedScans\\thumb'
-# MAPDIR = 'D:\\ResolvedData\\ProcessedScans\\maps'
+TIFFDIRS = ['D:\\ScannedData\\Plates\\LW06-1',
+            'D:\\ScannedData\\Plates\\LW06-2',
+            'D:\\ScannedData\\Plates\\LW06-3']   # List of directories to look for TIFF files in
+FITSDIR = 'D:\\ResolvedData\\ProcessedScans\\fits'      # Base directory to write FITS files out to
+HDRDIR = 'D:\\ResolvedData\\ProcessedScans\\headers'
+LOGDIR = 'D:\\ResolvedData\\ProcessedScans\\logs'
+JPEGDIR = 'D:\\ResolvedData\\ProcessedScans\\jpegs'
+THUMBDIR = 'D:\\ResolvedData\\ProcessedScans\\thumb'
+MAPDIR = 'D:\\ResolvedData\\ProcessedScans\\maps'
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
