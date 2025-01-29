@@ -1081,18 +1081,18 @@ def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
     imgmap.save(COVMAP_DIR + '\\covmap.png')
     imgcount = Image.frombytes(mode='L', size=(1800, 3600), data=covcount.astype('uint8') * 4).transpose(
         Image.ROTATE_90)
-    imgcount.save('D:/Data/Plates/covcount.png')
+    imgcount.save(COVMAP_DIR + '\\covcount.png')
 
     # Generate a single plot image showing all plates
     plotmap(title='Astrographic plate coverage: %d plates, %d with valid RA/Dec' % (count, count_radec),
             countmap=covcount,
-            filename='D:/data/plates/covcount-map.png')
+            filename=COVMAP_DIR + '\\covcount-map.png')
 
     # Generate a movie showing the progress over time
     logger.info('Generating movie')
     image_files = glob.glob('%s/*.png' % MAPDIR)
     clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=2)
-    clip.write_videofile('D:/Data/plates/Covcount-progress.mp4')
+    clip.write_videofile(COVMAP_DIR + '\\Covcount-progress.mp4')
 
 
 if __name__ == '__main__':
