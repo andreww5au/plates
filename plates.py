@@ -1016,7 +1016,7 @@ def do_all(fname='', dofits=False, analysis='', startat=0):
     :return:
     """
     results = []
-    df = pd.read_excel(fname, dtype=str, keep_default_na=False, header=1)
+    df = pd.read_excel(fname, dtype=str, keep_default_na=False, header=0)
     rownum = 0
     for row in df.iterrows():
         pdr = row[1]
