@@ -42,6 +42,7 @@ VERSION = '1.0.0'
 # JPEGDIR = 'D:\\Data\\plates\\output\\jpeg'
 # THUMBDIR = 'D:\\Data\\plates\\output\\thumb'
 # MAPDIR = 'D:\\Data\\plates\output\maps'
+# COVMAP_DIR = 'D:\\Data\\plates'
 
 TIFFDIRS = ['D:\\ScannedData\\Plates\\LW06-1',
             'D:\\ScannedData\\Plates\\LW06-2',
@@ -52,6 +53,7 @@ LOGDIR = 'D:\\ResolvedData\\ProcessedScans\\logs'
 JPEGDIR = 'D:\\ResolvedData\\ProcessedScans\\jpegs'
 THUMBDIR = 'D:\\ResolvedData\\ProcessedScans\\thumb'
 MAPDIR = 'D:\\ResolvedData\\ProcessedScans\\maps'
+COVMAP_DIR = 'D:\\ResolvedData\\ProcessedScans'
 
 MONTHS = {'jan':1, 'january':1,
           'feb':2, 'february':2, 'fen':2,
@@ -1076,7 +1078,7 @@ def plotmap(title, countmap, filename=None, ftype='png'):
 
 def genplots(count=0, count_radec=0, count_tiff=0, count_fits=0):
     imgmap = Image.frombytes(mode='L', size=(1800, 3600), data=covmap.astype('uint8') * 4).transpose(Image.ROTATE_90)
-    imgmap.save('D:/Data/Plates/covmap.png')
+    imgmap.save(COVMAP_DIR + '\\covmap.png')
     imgcount = Image.frombytes(mode='L', size=(1800, 3600), data=covcount.astype('uint8') * 4).transpose(
         Image.ROTATE_90)
     imgcount.save('D:/Data/Plates/covcount.png')
