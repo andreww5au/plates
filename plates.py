@@ -1045,7 +1045,7 @@ def plotmap(title, countmap, filename=None, ftype='png'):
     ax.set_ylabel('Declination', fontsize='large')
     data = countmap.transpose().astype(np.float32)
     data = np.flip(data, axis=1)
-    data[data == 0] = np.NaN
+    data[data == 0] = np.nan
     im = ax.pcolormesh(Lon, Lat, data, cmap=c, vmax=20)
 
     # add a color bar
