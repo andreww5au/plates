@@ -1112,7 +1112,7 @@ if __name__ == '__main__':
     covmap = np.zeros(shape=(3600, 1800), dtype=np.int32)
     covcount = np.zeros(shape=(3600, 1800), dtype=np.int32)
 
-    fnames = ['AllCoords_newformat.xlsx']
+    fnames = ['LW06-PlateMetaData AW.xlsx']
     logger.info("Filenames=%s" % (fnames,))
     # for fname in fnames:
     #     fnames += glob.glob(fname)   # Windows shell doesn't do wildcard expansion, so do it here.
