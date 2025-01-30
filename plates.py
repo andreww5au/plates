@@ -44,9 +44,9 @@ VERSION = '1.0.0'
 # MAPDIR = 'D:\\Data\\plates\output\maps'
 # COVMAP_DIR = 'D:\\Data\\plates'
 
-TIFFDIRS = ['D:\\ScannedData\\Plates\\LW06-1',
-            'D:\\ScannedData\\Plates\\LW06-2',
-            'D:\\ScannedData\\Plates\\LW06-3']   # List of directories to look for TIFF files in
+TIFFDIRS = ['D:\\Scanned data\\Plates\\LW06-1',
+            'D:\\Scanned data\\Plates\\LW06-2',
+            'D:\\Scanned data\\Plates\\LW06-3']   # List of directories to look for TIFF files in
 FITSDIR = 'D:\\ResolvedData\\ProcessedScans\\fits'      # Base directory to write FITS files out to
 HDRDIR = 'D:\\ResolvedData\\ProcessedScans\\headers'
 LOGDIR = 'D:\\ResolvedData\\ProcessedScans\\logs'
