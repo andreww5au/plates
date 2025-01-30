@@ -700,7 +700,7 @@ def do_plate(row=None, dofits=False, analysis=''):
     primary_hdu = fits.PrimaryHDU()
     got_tiff = False
     if (tiff_filename is None) or (not os.path.exists(tiff_filename)):
-        logger.info('Seq# %s File %s not found' % (seqnum, tiff_filename))
+        logger.debug('Seq# %s File %s not found' % (seqnum, tiff_filename))
         pass
     else:
         logger.info('Seq# %s File %s found' % (seqnum, tiff_filename))
