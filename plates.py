@@ -90,7 +90,7 @@ LOGFILE = os.path.join(LOGDIR, 'plates.log')
 LOGLEVEL_CONSOLE = logging.INFO    # INFO and above will be printed to STDOUT as well as the logfile
 LOGLEVEL_LOGFILE = logging.DEBUG   # All messages will be sent to the log file
 
-logger = logging.getLogger()
+logger = logging.getLogger('plates')
 logger.setLevel(logging.DEBUG)
 
 fh = handlers.RotatingFileHandler(LOGFILE, maxBytes=1000000000, backupCount=5)  # 1 Gb per file, max of five old log files
@@ -700,7 +700,7 @@ def do_plate(row=None, dofits=False, analysis=''):
     primary_hdu = fits.PrimaryHDU()
     got_tiff = False
     if (tiff_filename is None) or (not os.path.exists(tiff_filename)):
-        # print('Seq# %s File %s not found' % (seqnum, tiff_filename))
+        print('Seq# %s File %s not found' % (seqnum, tiff_filename))
         pass
     else:
         logger.info('Seq# %s File %s found' % (seqnum, tiff_filename))
