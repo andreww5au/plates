@@ -700,13 +700,13 @@ def do_plate(row=None, dofits=False, analysis=''):
     primary_hdu = fits.PrimaryHDU()
     got_tiff = False
     if (tiff_filename is None) or (not os.path.exists(tiff_filename)):
-        print('Seq# %s File %s not found' % (seqnum, tiff_filename))
+        logger.info('Seq# %s File %s not found' % (seqnum, tiff_filename))
         pass
     else:
         logger.info('Seq# %s File %s found' % (seqnum, tiff_filename))
         if isdone(tiffname=tiff_filename, platenum=platenum):
             logger.info('Seq# %s File %s already processed' % (seqnum,
-                                                         get_outfilename(tiffname=tiff_filename, platenum=platenum)))
+                                                               get_outfilename(tiffname=tiff_filename, platenum=platenum)))
         else:
             try:
                 tiff_img = Image.open(tiff_filename, 'r')
@@ -726,7 +726,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             scale = 1.0 / (maxpix - minpix)
             logger.debug('Converting to L')
             tiff_img = Image.fromarray(np.uint8(255.0 * (primary_hdu.data - minpix) * scale))
-            logger.info('Saving large: %s, %s' % (tiff_img.getextrema(), tiff_img.mode))
+            logger.info('Saving large: %s, %sto %s' % (tiff_img.getextrema(), tiff_img.mode, jpegname))
             tiff_img.save(jpegname, quality=20)
             logger.info('Generating thumbnail')
             try:
@@ -735,7 +735,7 @@ def do_plate(row=None, dofits=False, analysis=''):
                 tiff_img = tiff_img.convert(mode='RGB')
                 logger.debug('Blending watermark')
                 thumb = PIL.Image.blend(tiff_img, WATERMARK.resize(size=tiff_img.size), 0.05)
-                logger.info('Saving thumbnail')
+                logger.info('Saving thumbnail to %s' % thumbname)
                 thumb.save(thumbname)
                 logger.debug('Saved.')
                 del thumb
