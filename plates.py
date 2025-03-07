@@ -745,14 +745,14 @@ def do_plate(row=None, dofits=False, analysis=''):
             del tiff_img
 
     cover_filename = get_coverfilename(platenum=platenum)
-    cover_hdu = None
-    # if (cover_filename is None) or (not os.path.exists(cover_filename)):
-    #     # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
-    #     pass
-    # elif got_tiff:
-    #     cover_img = Image.open(cover_filename, 'r')
-    #     cover_hdu = fits.ImageHDU(np.array(cover_img))
-    #     # cover_hdu.data.shape = cover_img.size
+    # cover_hdu = None
+    if (cover_filename is None) or (not os.path.exists(cover_filename)):
+        # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
+        pass
+    elif got_tiff:
+        cover_img = Image.open(cover_filename, 'r')
+        cover_hdu = fits.ImageHDU(np.array(cover_img))
+        # cover_hdu.data.shape = cover_img.size
 
     head = primary_hdu.header
     head.set('SIMPLE', 'T', 'File does conform to FITS standard')
