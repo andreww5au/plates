@@ -745,7 +745,7 @@ def do_plate(row=None, dofits=False, analysis=''):
             del tiff_img
 
     cover_filename = get_coverfilename(platenum=platenum)
-    # cover_hdu = None
+    cover_hdu = None
     if (cover_filename is None) or (not os.path.exists(cover_filename)):
         # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
         cover_hdu = None
