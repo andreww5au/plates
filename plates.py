@@ -748,7 +748,7 @@ def do_plate(row=None, dofits=False, analysis=''):
     # cover_hdu = None
     if (cover_filename is None) or (not os.path.exists(cover_filename)):
         # print('Seq# %s - Cover envelope scan file %s not found' % (seqnum, cover_filename))
-        pass
+        cover_hdu = None
     elif got_tiff:
         cover_img = Image.open(cover_filename, 'r')
         cover_hdu = fits.ImageHDU(np.array(cover_img))
