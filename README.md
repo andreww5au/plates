@@ -37,7 +37,49 @@ the faintest stars are measured using the longest exposure - but this one has th
 stars hopelessly saturated. The offsets between the exposures are determined statistically
 using measurements of all stars visible in more than one of the exposures on that plate.
 
-
+A typical FITS header looks like:
+SIMPLE  = 'T       '           / File does conform to FITS standard             
+BITPIX  =                   16 / 16-bit signed integers                         
+NAXIS   =                    0 / number of array dimensions                     
+EXTEND  =                    T                                                  
+CREATOR = 'plates.py v1.0.0 by Andrew.Williams@curtin.edu.au'                   
+OBSERVAT= 'Perth Observatory, Astrographic dome.' / Observatory name            
+TELESCOP= 'Astro   '           / Telescope name                                 
+LATITUDE= '-32:00:27.98'       / Latitude                                       
+LONGITUD= '116:08:11.36'       / Longitude East                                 
+INSTRUME= 'Astrographic Plate Camera' / Instrument                              
+OBSERVER= 'Y       '           / Person guiding the telescope                   
+OBJECT  = 'Ast Cat Accepted'   / Target name                                    
+GUIDER  = '' / Guider Settings                                                  
+SEQNUM  =                 2682 / Plate scanning sequence number                 
+PLATE   = '3150    '           / Plate number                                   
+PLSIZE  = 'L       '           / Plate Size                                     
+EMULSION= 'glass   '           / Plate type                                     
+RASTRING= '113500  '                                                            
+RA      =    11.58333333333333 / Right Ascension in hours                       
+DESTRING= '-3700   '                                                            
+DEC     =                -37.0 / Declination in degrees                         
+ENV_DATE= '1913,may,23'        / Date written on envelope                       
+DATE-OBS= '1913-05-23'         / Date of observation                            
+TIME-OBS= '11:38:51.837'       / UTC at start of exposure                       
+TIMESYS = 'UTC     '           / Time System is UTC                             
+LST     = '11:25:20.005'       / Local Sidereal Time on envelope                
+JD      =     2419910.98532219 / Julian Date at start of exposure               
+MJD-OBS =    19910.48532218978 / Modified Julian Date at start of exposure      
+EXPTIME =                  372 / Total exposure time in seconds                 
+LSTART1 = '11:25:20.005'       / LST at start of exposure                       
+LEND1   = '11:29:20.005'       / LST at end of exposure                         
+LSTART2 = '11:29:30.005'       / LST at start of second exposure                
+LEND2   = '11:31:30.005'       / LST at end of second exposure                  
+LSTART3 = '11:31:40.005'       / LST at start of third exposure                 
+LEND3   = '11:31:53.005'       / LST at end of third exposure                   
+EQUINOX =                 1900 / Equinox missing, assuming 1900                 
+ALT     =                 84.7 / Altitude in Degrees                            
+AZ      =                164.5 / Azimuth in Degrees                             
+COMMENT Ast Obs Bk 6Pg046                                                       
+COMMENT LST Exposure                                                            
+HISTORY Scanned by 'SVK' on 2019-06-07 00:00:00 (week 9)                        
+END                                                                   
 
 The FITS files:
     - 
