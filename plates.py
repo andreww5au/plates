@@ -755,7 +755,7 @@ def do_plate(row=None, dofits=False, analysis=''):
         # cover_hdu.data.shape = cover_img.size
 
     head = primary_hdu.header
-    head.set('SIMPLE', 'T', 'File does conform to FITS standard')
+    head.set('SIMPLE', True, 'File does conform to FITS standard')
     head.set('BITPIX', 16, '16-bit signed integers')
     head.set('CREATOR', 'plates.py v%s by Andrew.Williams@curtin.edu.au' % VERSION)
     obsname, obslocation, instrument = get_observatory(telescope)
